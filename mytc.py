@@ -1,5 +1,12 @@
 from collections import defaultdict
-from itertools import permutations
+from itertools import permutations, tee
+
+
+def pairwise(iterable):
+    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
+    a, b = tee(iterable)
+    next(b, None)
+    return zip(a, b)
 
 
 class Row:
@@ -194,6 +201,14 @@ def solve(gens, subgens, rels):
 
 
 def coxeter(gens, subgens, rels):
+    """
+    specify relations in terms of coxeter diagram
+
+    for example the following are equivalent:
+    coxeter('xyz', H, ('xy' * 4, 'yz' * 3))
+      solve('xyz', H, ('xy' * 2, 'yz' * 3, 'xz' * 2, 'x' * 2, 'y' * 2, 'z' * 2))
+    """
+
     assert isinstance(rels, tuple)
 
     inc_links = {frozenset(rel) for rel in rels}
@@ -203,38 +218,33 @@ def coxeter(gens, subgens, rels):
     rels += tuple(''.join(link) * 2 for link in missing_links)
     rels += tuple(gen * 2 for gen in gens)
 
-    # return gens, subgens, rels
     return solve(gens, subgens, rels)
 
 
-def main2electricboogaloo():
-    # sol = coxeter('rgb', 'rg', ('rg' * 2, 'rb' * 2, 'gb' * 2))
+def schlafli(gens, subgens, rels):
+    """
+    specify relations in terms of the Schlafli symbol
 
-    sol = coxeter('rgb', '', ('rg' * 4, 'gb' * 3))
+    for example the following are equivalent:
+    schlafli('xyz', H, (4, 3))
+     coxeter('xyz', H, ('xy' * 4, 'yz' * 3))
+       solve('xyz', H, ('xy' * 2, 'yz' * 3, 'xz' * 2, 'x' * 2, 'y' * 2, 'z' * 2))
 
-    print(sol)
+    """
 
-    for rel in sol.rels:
-        print(rel)
+    assert len(gens) == len(rels) + 1
+
+    cox_rels = tuple(
+        ''.join(pair) * coeff
+        for pair, coeff in zip(pairwise(gens), rels)
+    )
+
+    return coxeter(gens, subgens, cox_rels)
 
 
 def main():
-    c = Cosets('rgb')
-    c.set(0, 'r', 1)
-
-    r = Relation('rr')
-    r.add_row()
-    r.add_row()
-
-    print(r, end='\n\n')
-    learned = r.apply(c)
-    for cos, gen, tar in learned:
-        c.set(cos, gen, tar)
-
-    print(r, end='\n\n')
-
-    print(c)
+    print(schlafli('rgby', 'rgb', (4, 3, 3)))
 
 
 if __name__ == '__main__':
-    main2electricboogaloo()
+    main()
