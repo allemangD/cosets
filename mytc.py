@@ -1,4 +1,5 @@
 from collections import defaultdict
+from itertools import permutations
 
 
 class Row:
@@ -84,12 +85,17 @@ class Relation:
     def __len__(self):
         return len(self.rows)
 
+    @property
+    def complete(self):
+        return all(row.complete for row in self.rows)
+
     def add_row(self):
         i = len(self)
         self.rows.append(Row(self.rel, i))
         return i
 
     def apply(self, cosets: 'Cosets'):
+        """:returns the set of relations learned"""
         learned = set()
 
         for row in self.rows:
@@ -105,13 +111,13 @@ class Relation:
         return '\n'.join([
             ' ' + ' '.join(str(r) for r in self.rel),
             '\n'.join(str(row) for row in self.rows)
-        ])
+        ]) + '\n'
 
 
 class Cosets:
     def __init__(self, gens):
         self.gens = gens
-        self.cosets = defaultdict(lambda: defaultdict(lambda: None))
+        self.cosets = defaultdict(lambda: {g: None for g in self.gens})
 
     def get(self, coset, gen):
         target = self.cosets[coset][gen]
@@ -126,15 +132,90 @@ class Cosets:
     def set(self, coset, gen, target):
         self.cosets[coset][gen] = target
 
+    def add_coset(self):
+        for i, coset in self.cosets.items():
+            for gen, target in coset.items():
+                if target is None:
+                    self.set(i, gen, len(self.cosets))
+                    _ = self.cosets[len(self.cosets)]  # to create the row in defaultdict
 
-class Solver:
-    def __init__(self, gens, subgens, rels):
-        self.cosets = Cosets(gens)
-        self.subgens = subgens
-        self.rels = [Relation(rel, rows=1) for rel in rels]
+                    return True
+        return False
 
-        for gen in subgens:
-            self.cosets.set(0, gen, 0)
+    def __str__(self):
+        table = [
+                    [' ', ' '] + [str(g) for g in self.gens],
+                ] + [
+                    [str(coset), '|'] + [str(targets[gen]) for gen in self.gens]
+                    for coset, targets in self.cosets.items()
+                ]
+
+        return '\n'.join(' '.join(row) for row in table) + '\n'
+
+
+class Solution:
+    def __init__(self, cosets, rels):
+        self.cosets = cosets
+        self.rels = rels
+
+    def __str__(self):
+        return str(self.cosets)
+
+
+def solve(gens, subgens, rels):
+    cosets = Cosets(gens)
+    subgens = subgens
+    rels = [Relation(rel, rows=1) for rel in rels]
+
+    for gen in subgens:
+        cosets.set(0, gen, 0)
+
+    while not all(rel.complete for rel in rels):
+        while True:
+            changed = False
+
+            for rel in rels:
+                learned = rel.apply(cosets)
+                if learned:
+                    changed = True
+                for cos, gen, tar in learned:
+                    cosets.set(cos, gen, tar)
+
+            if not changed:
+                break
+
+        if cosets.add_coset():
+            for rel in rels:
+                rel.add_row()
+        else:
+            break
+
+    return Solution(cosets, rels)
+
+
+def coxeter(gens, subgens, rels):
+    assert isinstance(rels, tuple)
+
+    inc_links = {frozenset(rel) for rel in rels}
+    all_links = {frozenset(rel) for rel in permutations(gens, r=2)}
+    missing_links = all_links - inc_links
+
+    rels += tuple(''.join(link) * 2 for link in missing_links)
+    rels += tuple(gen * 2 for gen in gens)
+
+    # return gens, subgens, rels
+    return solve(gens, subgens, rels)
+
+
+def main2electricboogaloo():
+    # sol = coxeter('rgb', 'rg', ('rg' * 2, 'rb' * 2, 'gb' * 2))
+
+    sol = coxeter('rgb', '', ('rg' * 4, 'gb' * 3))
+
+    print(sol)
+
+    for rel in sol.rels:
+        print(rel)
 
 
 def main():
@@ -152,6 +233,8 @@ def main():
 
     print(r, end='\n\n')
 
+    print(c)
+
 
 if __name__ == '__main__':
-    main()
+    main2electricboogaloo()
