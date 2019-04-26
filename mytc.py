@@ -125,26 +125,27 @@ class Cosets:
     def __init__(self, gens):
         self.gens = gens
         self.cosets = defaultdict(lambda: {g: None for g in self.gens})
+        self.rcosets = defaultdict(lambda: {g: None for g in self.gens})
 
     def get(self, coset, gen):
         target = self.cosets[coset][gen]
         return target
 
     def rget(self, gen, target):
-        for i, coset in self.cosets.items():
-            if coset[gen] == target:
-                return i
-        return None
+        coset = self.rcosets[target][gen]
+        return coset
 
     def set(self, coset, gen, target):
         self.cosets[coset][gen] = target
+        self.rcosets[target][gen] = coset
 
     def add_coset(self):
         for i, coset in self.cosets.items():
             for gen, target in coset.items():
                 if target is None:
                     self.set(i, gen, len(self.cosets))
-                    _ = self.cosets[len(self.cosets)]  # to create the row in defaultdict
+                    _ = self.cosets[len(self.cosets)]  # create the row in cosets
+                    _ = self.rcosets[len(self.rcosets)]  # create new row in rcosets
 
                     return True
         return False
