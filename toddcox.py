@@ -8,10 +8,11 @@ coxeter graph and the schlafli symbol, respectively.
 """
 
 from itertools import permutations, tee
+from typing import List
 
 
 def pairwise(iterable):
-    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
+    """s -> (s0,s1), (s1,s2), (s2, s3), ..."""
     a, b = tee(iterable)
     next(b, None)
     return zip(a, b)
@@ -38,14 +39,6 @@ class Row:
     @property
     def right_gen(self):
         return self.rel[self.right - 1]
-
-    @property
-    def learned(self):
-        """ give the information learned by this row, or none if not complete """
-        if not self.complete:
-            return None
-
-        return self.left_coset, self.left_gen, self.right_target
 
     def learn(self, cosets: 'Cosets'):
         """
@@ -75,43 +68,6 @@ class Row:
             return True
 
         return False
-
-
-class Relation:
-    def __init__(self, rel, rows=1):
-        self.rel = rel
-        self.rows = []
-
-        for _ in range(rows):
-            self.add_row()
-
-    def __len__(self):
-        return len(self.rows)
-
-    @property
-    def complete(self):
-        return all(row.left + 1 == row.right for row in self.rows)
-
-    def add_row(self):
-        i = len(self)
-        self.rows.append(Row(self.rel, i))
-        return i
-
-    def apply(self, cosets: 'Cosets'):
-        """:returns whether information was learned"""
-        learned = False
-
-        for row in self.rows:
-            if row.learn(cosets):
-                learned = True
-
-        return learned
-
-    def __str__(self):
-        return '\n'.join([
-            ' ' + ' '.join(str(r) for r in self.rel),
-            '\n'.join(str(row) for row in self.rows)
-        ]) + '\n'
 
 
 class Cosets:
@@ -162,14 +118,8 @@ class Cosets:
 
         return '\n'.join(' '.join(f'{e:>{w}}' for e, w in zip(row, widths)) for row in table) + '\n'
 
-
-class Solution:
-    def __init__(self, cosets, names):
-        self.names = names
-        self.cosets = cosets
-
-    def __str__(self):
-        return str(self.cosets)
+    def __len__(self):
+        return len(self.cosets)
 
 
 def solve(gens, subgens, rels):
@@ -187,29 +137,28 @@ def solve(gens, subgens, rels):
     subgens = [gens.index(g) for g in subgens]
 
     cosets = Cosets(len(gens), names)
-    rels = [Relation(rel, rows=1) for rel in rels]
+    rows: List[Row] = [Row(rel, 0) for rel in rels]
 
     for gen in subgens:
         cosets.set(0, gen, 0)
 
-    while not all(rel.complete for rel in rels):
+    while rows:
         while True:
             learned = False
-
-            for rel in rels:
-                if rel.apply(cosets):
+            for i in reversed(range(len(rows))):
+                if rows[i].learn(cosets):
                     learned = True
-
+                    del rows[i]
             if not learned:
                 break
 
+        i = len(cosets)
         if cosets.add_coset():
-            for rel in rels:
-                rel.add_row()
+            rows += [Row(rel, i) for rel in rels]
         else:
             break
 
-    return Solution(cosets, names)
+    return cosets
 
 
 def coxeter(gens, subgens, rels):
