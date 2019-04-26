@@ -25,17 +25,11 @@ class Row:
         """
 
         self.rel = rel
-        self.row = [i] * (len(rel) + 1)
         self.left = 0
         self.right = len(rel)
 
-    @property
-    def left_coset(self):
-        return self.row[self.left]
-
-    @property
-    def right_target(self):
-        return self.row[self.right]
+        self.left_coset = i
+        self.right_target = i
 
     @property
     def left_gen(self):
@@ -46,15 +40,6 @@ class Row:
         return self.rel[self.right - 1]
 
     @property
-    def complete(self):
-        return not self.unknown
-
-    @property
-    def unknown(self):
-        """ return range of unknown data"""
-        return range(self.left + 1, self.right)
-
-    @property
     def learned(self):
         """ give the information learned by this row, or none if not complete """
         if not self.complete:
@@ -62,31 +47,34 @@ class Row:
 
         return self.left_coset, self.left_gen, self.right_target
 
-    def apply(self, cosets: 'Cosets'):
-        updated = False
+    def learn(self, cosets: 'Cosets'):
+        """
+        :return: whether information was learned
+        """
+        if self.left + 1 == self.right:
+            return False
 
-        while not self.complete:
+        while self.left + 1 != self.right:
             left_target = cosets.get(self.left_coset, self.left_gen)
             if left_target is None:
                 break
 
-            updated = True
             self.left += 1
-            self.row[self.left] = left_target
+            self.left_coset = left_target
 
-        while not self.complete:
+        while self.left + 1 != self.right:
             right_coset = cosets.rget(self.right_gen, self.right_target)
             if right_coset is None:
                 break
 
-            updated = True
             self.right -= 1
-            self.row[self.right] = right_coset
+            self.right_target = right_coset
 
-        return updated
+        if self.left + 1 == self.right:
+            cosets.set(self.left_coset, self.left_gen, self.right_target)
+            return True
 
-    def __str__(self):
-        return ' '.join('?' if i in self.unknown else str(d) for i, d in enumerate(self.row))
+        return False
 
 
 class Relation:
@@ -102,7 +90,7 @@ class Relation:
 
     @property
     def complete(self):
-        return all(row.complete for row in self.rows)
+        return all(row.left + 1 == row.right for row in self.rows)
 
     def add_row(self):
         i = len(self)
@@ -110,15 +98,12 @@ class Relation:
         return i
 
     def apply(self, cosets: 'Cosets'):
-        """:returns the set of relations learned"""
-        learned = set()
+        """:returns whether information was learned"""
+        learned = False
 
         for row in self.rows:
-            if row.apply(cosets):
-                row_learned = row.learned
-
-                if row_learned:
-                    learned.add(row_learned)
+            if row.learn(cosets):
+                learned = True
 
         return learned
 
@@ -209,16 +194,13 @@ def solve(gens, subgens, rels):
 
     while not all(rel.complete for rel in rels):
         while True:
-            changed = False
+            learned = False
 
             for rel in rels:
-                learned = rel.apply(cosets)
-                if learned:
-                    changed = True
-                for cos, gen, tar in learned:
-                    cosets.set(cos, gen, tar)
+                if rel.apply(cosets):
+                    learned = True
 
-            if not changed:
+            if not learned:
                 break
 
         if cosets.add_coset():
@@ -273,7 +255,7 @@ def schlafli(gens, subgens, rels):
 
 
 def main():
-    print(schlafli('rgby', 'rgb', (3, 3, 3)))
+    print(schlafli('rgby', 'rgb', (5, 3, 3)))
 
 
 if __name__ == '__main__':
