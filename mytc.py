@@ -122,10 +122,14 @@ class Relation:
 
 
 class Cosets:
-    def __init__(self, gens):
-        self.gens = gens
-        self.cosets = defaultdict(lambda: {g: None for g in self.gens})
-        self.rcosets = defaultdict(lambda: {g: None for g in self.gens})
+    def __init__(self, n_gens, names):
+        self.names = names
+        self.n_gens = n_gens
+
+        self.cosets = []
+        self.rcosets = []
+
+        self.add_row()
 
     def get(self, coset, gen):
         target = self.cosets[coset][gen]
@@ -139,30 +143,36 @@ class Cosets:
         self.cosets[coset][gen] = target
         self.rcosets[target][gen] = coset
 
-    def add_coset(self):
-        for i, coset in self.cosets.items():
-            for gen, target in coset.items():
-                if target is None:
-                    self.set(i, gen, len(self.cosets))
-                    _ = self.cosets[len(self.cosets)]  # create the row in cosets
-                    _ = self.rcosets[len(self.rcosets)]  # create new row in rcosets
+    def add_row(self):
+        self.cosets.append([None] * self.n_gens)
+        self.rcosets.append([None] * self.n_gens)
 
+    def add_coset(self):
+        for i, coset in enumerate(self.cosets):
+            for gen, target in enumerate(coset):
+                if target is None:
+                    target = len(self.cosets)
+                    self.add_row()
+                    self.set(i, gen, target)
                     return True
         return False
 
     def __str__(self):
         table = [
-                    [' ', ' '] + [str(g) for g in self.gens],
+                    [' ', ' '] + [str(name) for name in self.names],
                 ] + [
-                    [str(coset), '|'] + [str(targets[gen]) for gen in self.gens]
-                    for coset, targets in self.cosets.items()
+                    [str(coset), '|'] + [str(target) for target in targets]
+                    for coset, targets in enumerate(self.cosets)
                 ]
 
-        return '\n'.join(' '.join(row) for row in table) + '\n'
+        widths = [max(len(col) for col in row) for row in zip(*table)]
+
+        return '\n'.join(' '.join(f'{e:>{w}}' for e, w in zip(row, widths)) for row in table) + '\n'
 
 
 class Solution:
-    def __init__(self, cosets, rels):
+    def __init__(self, cosets, rels, names):
+        self.names = names
         self.cosets = cosets
         self.rels = rels
 
@@ -171,8 +181,11 @@ class Solution:
 
 
 def solve(gens, subgens, rels):
-    cosets = Cosets(gens)
-    subgens = subgens
+    names = gens
+    rels = [[gens.index(g) for g in rel] for rel in rels]
+    subgens = [gens.index(g) for g in subgens]
+
+    cosets = Cosets(len(gens), names)
     rels = [Relation(rel, rows=1) for rel in rels]
 
     for gen in subgens:
@@ -198,7 +211,7 @@ def solve(gens, subgens, rels):
         else:
             break
 
-    return Solution(cosets, rels)
+    return Solution(cosets, rels, names)
 
 
 def coxeter(gens, subgens, rels):
@@ -244,7 +257,7 @@ def schlafli(gens, subgens, rels):
 
 
 def main():
-    print(schlafli('rgby', 'rgb', (4, 3, 3)))
+    print(schlafli('rgby', 'rgb', (3, 3, 3)))
 
 
 if __name__ == '__main__':
