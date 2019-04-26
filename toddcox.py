@@ -1,4 +1,12 @@
-from collections import defaultdict
+"""
+This module provides an implementation of the Todd-Coxeter
+algorithm for coset enumeration. The solve function accepts
+the presentation of a group and subgroup, and outputs the
+completed table of cosets of the subgroup. The coxeter and
+schlafli functions perform the same task, but accept the
+coxeter graph and the schlafli symbol, respectively.
+"""
+
 from itertools import permutations, tee
 
 
@@ -171,16 +179,24 @@ class Cosets:
 
 
 class Solution:
-    def __init__(self, cosets, rels, names):
+    def __init__(self, cosets, names):
         self.names = names
         self.cosets = cosets
-        self.rels = rels
 
     def __str__(self):
         return str(self.cosets)
 
 
 def solve(gens, subgens, rels):
+    """
+    Given the presentation of a group and a subgroup, count the cosets of that
+    subgroup and determine the relations between cosets.
+
+    :param gens: Generators of the group
+    :param subgens: Generators of the subgroup
+    :param rels: Identity relations of the group
+    :return: A coset table describing actions on each coset
+    """
     names = gens
     rels = [[gens.index(g) for g in rel] for rel in rels]
     subgens = [gens.index(g) for g in subgens]
@@ -211,7 +227,7 @@ def solve(gens, subgens, rels):
         else:
             break
 
-    return Solution(cosets, rels, names)
+    return Solution(cosets, names)
 
 
 def coxeter(gens, subgens, rels):
