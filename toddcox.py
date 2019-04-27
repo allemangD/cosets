@@ -7,15 +7,9 @@ schlafli functions perform the same task, but accept the
 coxeter graph and the schlafli symbol, respectively.
 """
 
-from itertools import permutations, tee
 from typing import List
 
-
-def pairwise(iterable):
-    """s -> (s0,s1), (s1,s2), (s2, s3), ..."""
-    a, b = tee(iterable)
-    next(b, None)
-    return zip(a, b)
+from util import schlafli
 
 
 class Row:
@@ -154,57 +148,16 @@ def solve(gens, subgens, rels):
 
         i = len(cosets)
         if cosets.add_coset():
-            rows += [Row(rel, i) for rel in rels]
+            rows += (Row(rel, i) for rel in rels)
         else:
             break
 
     return cosets
 
 
-def coxeter(gens, subgens, rels):
-    """
-    specify relations in terms of coxeter diagram
-
-    for example the following are equivalent:
-    coxeter('xyz', H, ('xy' * 4, 'yz' * 3))
-      solve('xyz', H, ('xy' * 2, 'yz' * 3, 'xz' * 2, 'x' * 2, 'y' * 2, 'z' * 2))
-    """
-
-    assert isinstance(rels, tuple)
-
-    inc_links = {frozenset(rel) for rel in rels}
-    all_links = {frozenset(rel) for rel in permutations(gens, r=2)}
-    missing_links = all_links - inc_links
-
-    rels += tuple(''.join(link) * 2 for link in missing_links)
-    rels += tuple(gen * 2 for gen in gens)
-
-    return solve(gens, subgens, rels)
-
-
-def schlafli(gens, subgens, rels):
-    """
-    specify relations in terms of the Schlafli symbol
-
-    for example the following are equivalent:
-    schlafli('xyz', H, (4, 3))
-     coxeter('xyz', H, ('xy' * 4, 'yz' * 3))
-       solve('xyz', H, ('xy' * 2, 'yz' * 3, 'xz' * 2, 'x' * 2, 'y' * 2, 'z' * 2))
-
-    """
-
-    assert len(gens) == len(rels) + 1
-
-    cox_rels = tuple(
-        ''.join(pair) * coeff
-        for pair, coeff in zip(pairwise(gens), rels)
-    )
-
-    return coxeter(gens, subgens, cox_rels)
-
-
 def main():
-    print(schlafli('rgby', 'rgb', (5, 3, 3)))
+    gens, subgens, rels = schlafli('rgby', 'rg', (5, 3, 3))
+    print(solve(gens, subgens, rels))
 
 
 if __name__ == '__main__':
