@@ -13,6 +13,8 @@ from util import schlafli
 
 
 class Row:
+    __slots__ = 'rel', 'left', 'right', 'left_coset', 'right_target'
+
     def __init__(self, rel, i):
         """
         :param i: index of this row
@@ -65,6 +67,8 @@ class Row:
 
 
 class Cosets:
+    __slots__ = 'names', 'n_gens', 'cosets', 'rcosets'
+
     def __init__(self, n_gens, names):
         self.names = names
         self.n_gens = n_gens
@@ -153,12 +157,3 @@ def solve(gens, subgens, rels):
             break
 
     return cosets
-
-
-def main():
-    gens, subgens, rels = schlafli('rgby', 'rg', (5, 3, 3))
-    print(solve(gens, subgens, rels))
-
-
-if __name__ == '__main__':
-    main()
