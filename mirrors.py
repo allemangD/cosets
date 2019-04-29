@@ -1,62 +1,128 @@
 import math
-from itertools import combinations
 
 
-def dot(u, v):
-    return sum((x * y for x, y, in zip(u, v)))
+class Vec(tuple):
+    @property
+    def norm2(self):
+        return self @ self
+
+    @property
+    def norm(self):
+        return math.sqrt(self.norm2)
+
+    @property
+    def dim(self):
+        return tuple.__len__(self)
+
+    def project(self, target):
+        target = Vec(target)
+        return (self @ target) / target.norm2 * target
+
+    def reflect(self, axis):
+        return self - 2 * self.project(axis)
+
+    def __getitem__(self, item):
+        if isinstance(item, slice):
+            return Vec(self[i] for i in range(*item.indices(item.stop)))
+
+        if item < self.dim:
+            return super(Vec, self).__getitem__(item)
+
+        return 0.0
+
+    def __len__(self):
+        return self.dim
+
+    def __matmul__(self, other):
+        return sum(x * y for x, y in zip(self, other))
+
+    def __rmatmul__(self, other):
+        return sum(x * y for x, y in zip(self, other))
+
+    def __mul__(self, other):
+        return Vec(x * other for x in self)
+
+    def __rmul__(self, other):
+        return Vec(other * x for x in self)
+
+    def __truediv__(self, other):
+        return Vec(x / other for x in self)
+
+    def __add__(self, other):
+        return Vec(x + y for x, y in zip(self, other))
+
+    def __radd__(self, other):
+        return Vec(y + x for x, y in zip(self, other))
+
+    def __sub__(self, other):
+        return Vec(x - y for x, y in zip(self, other))
+
+    def __rsub__(self, other):
+        return Vec(y - x for x, y in zip(self, other))
+
+    def __repr__(self):
+        return f'<{", ".join(str(x) for x in self)}>'
 
 
-def len2(u):
-    return dot(u, u)
+# noinspection PyPep8Naming
+def V(*components):
+    return Vec(components)
 
 
-def s(v, i):
-    return v[:i]
+class PlaneAngles:
+    default = math.pi / 2
+
+    def __init__(self, planes=None, **angles):
+        self.angles = {}
+        self.planes = planes if planes is not None else set()
+
+        for (p, q), a in angles.items():
+            self[p, q] = a
+
+    def __getitem__(self, pair):
+        p, q = pair
+
+        if p == q:
+            return 0.0
+
+        if (p, q) not in self.angles:
+            p, q = q, p
+
+        return self.angles.get((p, q), self.default)
+
+    def __setitem__(self, pair, value):
+        p, q = pair
+        self.angles[p, q] = math.pi / value
+        self.planes |= {p, q}
+
+    def __getattr__(self, item):
+        return self[item]
+
+    def __len__(self):
+        return len(self.planes)
+
+    def __str__(self):
+        return str(self.planes)
 
 
-def solve(planes, angles):
-    assert len(planes) == len(angles)
-    n = len(planes)
-    vn = []
-    for m in range(len(planes)):
-        vnm = math.cos(angles[m]) - dot(s(planes[m], m), s(vn, m)) / planes[m][m]
-        vn.append(vnm)
-    vnn = math.sqrt(1 - len2(s(vn, n)))
-    vn.append(vnn)
+def solve(pa: PlaneAngles):
+    planes = sorted(pa.planes)
+    normals = []
 
-    return tuple(vn)
+    for p in planes:
+        vp = []
+        for m, (q, vq) in enumerate(zip(planes, normals)):
+            vpm = (math.cos(pa[p, q]) - vq[:m] @ vp[:m]) / vq[m]
+            vp.append(round(vpm, 15))
+        vp.append(round(math.sqrt(1 - Vec(vp).norm2), 15))
+        normals.append(Vec(vp))
 
-
-def solve_all(all_angles):
-    planes = []
-    for angles in all_angles:
-        v = solve(planes, angles)
-        planes.append(v)
-    return planes
+    return {p: n[:len(normals)] for p, n in zip(planes, normals)}
 
 
 if __name__ == '__main__':
-    a = [[], [math.radians(45)], [math.radians(60), math.radians(90)]]
+    v = V(1, 2, 3)
 
-    print(solve_all(a))
-
-# def solve(plane_angles):
-#     """
-#     For example, normals(ab=4, bc=3, ac=2) solves the normals for
-#     planes a, b, c where the dihedral angle between a and b is
-#     180/4 degrees, between b and c is 180/3 degrees, and between
-#     a and c is 180/2 degrees.
-#
-#     :param plane_angles: dictionary, where keys are 2-tuples (or
-#     strings) of plane labels, and values are the fraction of
-#     180deg for the angle between planes.
-#     :return: a dictionary, where keys are the plane labels given
-#     in plane_angles and values are the normal vectors for each plane
-#     """
-#
-#     plane_angles = {(p1, p2): a for (p1, p2), a in plane_angles.items()}
-#     planes = [p for pair in plane_angles for p in pair]
-#     for p1, p2 in combinations(planes, r=2):
-#         assert (p1, p2) in plane_angles or (p2, p1) in plane_angles
-#
-#     normals = [(1,)]
+    pa = PlaneAngles(xy=4, yz=3)
+    ns = solve(pa)
+    print(ns)
