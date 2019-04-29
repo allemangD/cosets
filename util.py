@@ -1,3 +1,4 @@
+import math
 from itertools import tee, permutations
 
 
@@ -48,3 +49,70 @@ def schlafli(gens, subgens, rels):
     )
 
     return coxeter(gens, subgens, cox_rels)
+
+
+class Vec(tuple):
+    @property
+    def norm2(self):
+        return self @ self
+
+    @property
+    def norm(self):
+        return math.sqrt(self.norm2)
+
+    @property
+    def dim(self):
+        return tuple.__len__(self)
+
+    def project(self, target):
+        target = Vec(target)
+        return (self @ target) / target.norm2 * target
+
+    def reflect(self, axis):
+        return self - 2 * self.project(axis)
+
+    def __getitem__(self, item):
+        if isinstance(item, slice):
+            return Vec(self[i] for i in range(*item.indices(item.stop)))
+
+        if item < self.dim:
+            return super(Vec, self).__getitem__(item)
+
+        return 0.0
+
+    def __len__(self):
+        return self.dim
+
+    def __matmul__(self, other):
+        return sum(x * y for x, y in zip(self, other))
+
+    def __rmatmul__(self, other):
+        return sum(x * y for x, y in zip(self, other))
+
+    def __mul__(self, other):
+        return Vec(x * other for x in self)
+
+    def __rmul__(self, other):
+        return Vec(other * x for x in self)
+
+    def __truediv__(self, other):
+        return Vec(x / other for x in self)
+
+    def __add__(self, other):
+        return Vec(x + y for x, y in zip(self, other))
+
+    def __radd__(self, other):
+        return Vec(y + x for x, y in zip(self, other))
+
+    def __sub__(self, other):
+        return Vec(x - y for x, y in zip(self, other))
+
+    def __rsub__(self, other):
+        return Vec(y - x for x, y in zip(self, other))
+
+    def __repr__(self):
+        return f'<{", ".join(str(x) for x in self)}>'
+
+
+def V(*components):
+    return Vec(components)
