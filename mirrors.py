@@ -104,25 +104,25 @@ class PlaneAngles:
     def __str__(self):
         return str(self.planes)
 
+    @property
+    def normals(self):
+        planes = sorted(self.planes)
+        normals = []
 
-def solve(pa: PlaneAngles):
-    planes = sorted(pa.planes)
-    normals = []
+        for p in planes:
+            vp = []
+            for m, (q, vq) in enumerate(zip(planes, normals)):
+                vpm = (math.cos(self[p, q]) - vq[:m] @ vp[:m]) / vq[m]
+                vp.append(round(vpm, 15))
+            vp.append(round(math.sqrt(1 - Vec(vp).norm2), 15))
+            normals.append(Vec(vp))
 
-    for p in planes:
-        vp = []
-        for m, (q, vq) in enumerate(zip(planes, normals)):
-            vpm = (math.cos(pa[p, q]) - vq[:m] @ vp[:m]) / vq[m]
-            vp.append(round(vpm, 15))
-        vp.append(round(math.sqrt(1 - Vec(vp).norm2), 15))
-        normals.append(Vec(vp))
-
-    return {p: n[:len(normals)] for p, n in zip(planes, normals)}
+        return {p: n[:len(normals)] for p, n in zip(planes, normals)}
 
 
 if __name__ == '__main__':
     v = V(1, 2, 3)
 
     pa = PlaneAngles(xy=4, yz=3)
-    ns = solve(pa)
+    ns = pa.normals
     print(ns)
