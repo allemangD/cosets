@@ -104,6 +104,24 @@ class Cosets:
                     return True
         return False
 
+    @property
+    def words(self):
+        res = [None] * len(self)
+        res[0] = ''
+
+        while any(w is None for w in res):
+            for c, w in enumerate(res):
+                if w is None:
+                    continue
+
+                for g, t in zip(self.names, self.cosets[c]):
+                    if res[t] is not None:
+                        continue
+
+                    res[t] = w + g
+
+        return res
+
     def __str__(self):
         table = [
                     [' ', ' '] + [str(name) for name in self.names],
