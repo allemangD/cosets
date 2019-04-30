@@ -64,9 +64,13 @@ class Vec(tuple):
     def dim(self):
         return tuple.__len__(self)
 
+    @property
+    def normalized(self):
+        return self / self.norm
+
     def project(self, target):
         target = Vec(target)
-        return (self @ target) / target.norm2 * target
+        return (self @ target) / (target @ target) * target
 
     def reflect(self, axis):
         return self - 2 * self.project(axis)

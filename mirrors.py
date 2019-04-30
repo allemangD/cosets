@@ -48,14 +48,11 @@ class PlaneAngles:
                 vpm = (math.cos(self[p, q]) - vq[:m] @ vp[:m]) / vq[m]
                 vp.append(round(vpm, 15))
             vp.append(round(math.sqrt(1 - Vec(vp).norm2), 15))
-            normals.append(Vec(vp))
+            vp = Vec(vp)
+
+            if any(vp @ v > 0 for v in normals):
+                vp *= -1
+
+            normals.append(vp)
 
         return {p: n[:len(normals)] for p, n in zip(self.planes, normals)}
-
-
-if __name__ == '__main__':
-    v = V(1, 2, 3)
-
-    pa = PlaneAngles(xy=4, yz=3)
-    ns = pa.normals
-    print(ns)
