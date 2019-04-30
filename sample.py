@@ -30,8 +30,8 @@ def make_all(gens, subgens, coeffs):
 
 
 def proj(point):
-    x, y, z = point[:3]
-    return V(x + .2 * z, y + .1 * z) * 300
+    x, y, z = point[:3] * 300
+    return V(x + .2 * z, y + .1 * z)
 
 
 def draw_all(gens, subgens, rels, P, pen):
@@ -41,8 +41,14 @@ def draw_all(gens, subgens, rels, P, pen):
         pen.penup()
         for el in el_words:
             p = apply(P, el + cos, mirrors)
+            if p[2] > 0:
+                pen.color('lightgray')
+            else:
+                pen.color('black')
             pen.setpos(*proj(p))
             pen.pendown()
+    pen.penup()
+    pen.setpos(0, 0)
 
 
 def gram_schmidt(vecs) -> List[Vec]:
@@ -59,8 +65,20 @@ def main():
     pen.speed(0)
     pen.penup()
 
-    mults = (3, 5)
-    C = V(.6, 1, .95)
+    mults = (5, 3)
+    # C = V(2, .05, .05)  # dodecahedron
+    C = V(.05, 2, .05)  # icosidodecahedron
+    # C = V(.05, .05, 2)  # icosihedron
+
+    # mults = (4, 3)
+    # C = V(2, .05, .05)  # cube
+    # C = V(.05, 2, .05)  # cuboctahedron
+    # C = V(.05, .05, 2)  # octahedron
+
+    # mults = (3, 3)
+    # C = V(2, .05, .05)  # tetrahedron
+    # C = V(.05, 2, .05)  # octahedron
+    # C = V(.05, .05, 2)  # tetrahedron
 
     planes = PlaneAngles('rgb', **dict(zip(('rg', 'gb'), mults)))
     norm = planes.normals
@@ -74,11 +92,11 @@ def main():
 
     P = (Pr * C[0] + Pg * C[1] + Pb * C[2]).normalized
 
-    pen.color('red')
+    # pen.color('red')
     draw_all('rgb', 'r', mults, P, pen)
-    pen.color('green')
+    # pen.color('green')
     draw_all('rgb', 'g', mults, P, pen)
-    pen.color('blue')
+    # pen.color('blue')
     draw_all('rgb', 'b', mults, P, pen)
 
     turtle.done()
